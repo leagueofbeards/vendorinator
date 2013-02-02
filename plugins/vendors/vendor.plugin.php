@@ -5,6 +5,7 @@ class VendorInator extends Plugin
 {
 	public function action_init() {
 		DB::register_table('ad_vendors');
+		$this->ad_pages();
 	}
 
 	public function action_plugin_activation( $plugin_file ) {
@@ -31,7 +32,21 @@ class VendorInator extends Plugin
 
 		DB::dbdelta( $sql );
 	}
-	
+
+	private function ad_pages() {
+		$this->add_template('vendors', dirname($this->get_file()) . '/admin/vendors.php');
+	}
+
+	public function filter_admin_access_tokens( array $require_any, $page ) {
+		switch ($page) {
+			case 'vendors' :
+				$require_any = array('post_entry' => true);
+			break;			
+		}
+		
+		return $require_any;
+	}
+
 	public function filter_post_type_display($type, $g_number)	{
 		switch($type) {
 			case 'vendor':
