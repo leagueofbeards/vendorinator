@@ -1,7 +1,7 @@
 Vendorinator
 ============
 
-Add vendors to your [AdplacementInator](http://github.com/leagueofbeards/adplacementinator)
+Add vendors to your [AdplacementInator](http://github.com/leagueofbeards/adplacementinator).
 
 # So, what does this do exactly?
 
