@@ -1,4 +1,4 @@
 vendorinator
 ============
 
-Add vendors to your AdPlacementInator!
+Add vendors to your leagueofbeards/adplacementinator
