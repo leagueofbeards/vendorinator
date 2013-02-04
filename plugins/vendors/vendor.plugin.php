@@ -4,7 +4,7 @@ namespace Habari;
 class VendorInator extends Plugin
 {
 	public function action_init() {
-		DB::register_table('ad_vendors');
+		DB::register_table('vendors');
 		$this->ad_pages();
 	}
 
@@ -18,13 +18,12 @@ class VendorInator extends Plugin
 	}
 
 	private function create_ad_vendors_table() {
-		$sql = "CREATE TABLE {\$prefix}ad_vendors (
+		$sql = "CREATE TABLE {\$prefix}vendors (
 			id int unsigned NOT NULL AUTO_INCREMENT,
 			post_id int unsigned NOT NULL,
-			name varchar(255) NULL,
 			contact_name varchar(255) NULL,
 			contact_email varchar(255) NULL,
-			status int unsigned NOT NULL,
+			state int unsigned NOT NULL,
 			plan_id int unsigned NOT NULL,
 			PRIMARY KEY (`id`),
 			UNIQUE KEY `post_id` (`post_id`)			
@@ -35,11 +34,15 @@ class VendorInator extends Plugin
 
 	private function ad_pages() {
 		$this->add_template('vendors', dirname($this->get_file()) . '/admin/vendors.php');
+		$this->add_template('add_vendor', dirname($this->get_file()) . '/admin/add_vendor.php');
 	}
 
 	public function filter_admin_access_tokens( array $require_any, $page ) {
 		switch ($page) {
 			case 'vendors' :
+				$require_any = array('post_entry' => true);
+			break;
+			case 'add_vendor' :
 				$require_any = array('post_entry' => true);
 			break;			
 		}
@@ -66,11 +69,10 @@ class VendorInator extends Plugin
 		if($queried_types && in_array('vendor', $queried_types)) {
 			$paramarray['post_join'][] = '{vendors}';
 			$default_fields = isset($paramarray['default_fields']) ? $paramarray['default_fields'] : array();
-			$default_fields['{vendors}.location_id'] = 0;
-			$default_fields['{vendors}.active'] = '';
-			$default_fields['{vendors}.date'] = '';
-			$default_fields['{vendors}.link'] = '';
-			$default_fields['{vendors}.image_url'] = '';
+			$default_fields['{vendors}.contact_name'] = '';
+			$default_fields['{vendors}.contact_email'] = '';
+			$default_fields['{vendors}.state'] = '';
+			$default_fields['{vendors}.plan_id'] = '';
 			$paramarray['default_fields'] = $default_fields;
 		}
 		
@@ -91,6 +93,67 @@ class VendorInator extends Plugin
 		// Store the id of the post in the post_id field of the invoices table
 		$schema['vendors']['post_id'] = '*id';
 		return $schema;
+	}
+	
+	public function action_auth_ajax_add_vendor($data) {
+		$user = User::identify();
+		$vars = $data->handler_vars;
+				
+		if( $vars['active'] == 'yes' ) {
+			$active = 1;
+		} else {
+			$active = 0;
+		}
+
+		$postdata= array(
+			'title' 		=>	$vars['title'],
+			'slug'			=>	Utils::slugify( $vars['title'] ),
+			'content'		=>	$vars['title'],
+			'status'		=>	$active,
+			'contact_name'	=>	$vars['contact_name'],
+			'contact_email'	=>	$vars['contact_email'],
+			'plan_id'		=>	$vars['plan'],
+			'user_id'		=>	$user->id,	
+			'pubdate'		=>	DateTime::date_create( date(DATE_RFC822) ),
+			'status'		=>	Post::status( 'published' ),
+			'content_type'	=> Post::type('vendor'),
+		);
+		
+		$vendor = Vendor::create( $postdata );
+		
+		Utils::redirect( Site::get_url('admin') . '/add_vendor?id=' . $vendor->id );
+	}
+	
+	public function action_auth_ajax_update_vendor($data) {
+		$user = User::identify();
+		$vars = $data->handler_vars;
+		
+		$vendor = Vendor::get( array('id' => $vars['vendor_id']) );
+		
+		if( $vars['active'] == 'yes' ) {
+			$active = 1;
+		} else {
+			$active = 0;
+		}
+
+		$postdata= array(
+			'title' 		=>	$vars['title'],
+			'slug'			=>	Utils::slugify( $vars['title'] ),
+			'content'		=>	$vars['title'],
+			'state'		=>	$active,
+			'contact_name'	=>	$vars['contact_name'],
+			'contact_email'	=>	$vars['contact_email'],
+			'plan_id'		=>	$vars['plan'],
+			'updated'		=>	DateTime::date_create( date(DATE_RFC822) ),
+		);
+		
+		foreach( $postdata as $key => $value ) {
+			$vendor->$key = $value;
+		}
+
+		$vendor->update();
+		
+		Utils::redirect( Site::get_url('admin') . '/add_vendor?id=' . $vendor->id );
 	}
 }
 ?>
